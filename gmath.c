@@ -24,28 +24,79 @@
 
 //lighting functions
 color get_lighting( double *normal, double *view, color alight, double light[2][3], double *areflect, double *dreflect, double *sreflect) {
-  color i;
+  color i, a, d, s;
+  a = calculate_ambient(alight, areflect);
+  d = calculate_diffuse(light, dreflect, normal);
+  s = calculate_specular(light, sreflect, view, normal);
+
+  i.red = a.red + d.red + s.red;
+  i.green = a.green + d.green + s.green;
+  i.blue = a.blue + d.blue + s.blue;
+
+  limit_color(&i);
   return i;
 }
 
 color calculate_ambient(color alight, double *areflect ) {
   color a;
+  a.red = alight.red * areflect[RED];
+  a.green = alight.green * areflect[GREEN];
+  a.blue = alight.blue * areflect[BLUE];
+  limit_color(&a);
   return a;
 }
 
 color calculate_diffuse(double light[2][3], double *dreflect, double *normal ) {
   color d;
+  double p;
+
+  normalize(light[LOCATION]);
+  normalize(normal);
+
+  p = dot_product(light[LOCATION], normal);
+  if (p < 0) p = 0;
+
+  d.red = light[COLOR][RED] * dreflect[RED] * p;
+  d.green = light[COLOR][GREEN] * dreflect[GREEN] * p;
+  d.blue = light[COLOR][BLUE] * dreflect[BLUE] * p;
+
+  limit_color(&d);
   return d;
 }
 
 color calculate_specular(double light[2][3], double *sreflect, double *view, double *normal ) {
-
   color s;
+  double r[3];
+  double p;
+
+  normalize(light[LOCATION]);
+  normalize(normal);
+  normalize(r);
+
+  p = 2 * dot_product(normal,light[LOCATION]);
+
+  r[0] = normal[0] * p - light[LOCATION][0];
+  r[1] = normal[1] * p - light[LOCATION][1];
+  r[2] = normal[2] * p - light[LOCATION][2];
+
+  p = dot_product(r,view);
+
+  if (p < 0) p = 0;
+
+  s.red = light[COLOR][RED] * sreflect[RED] * pow(p, SPECULAR_EXP);
+  s.red = light[COLOR][GREEN] * sreflect[GREEN] * pow(p, SPECULAR_EXP);
+  s.red = light[COLOR][BLUE] * sreflect[BLUE] * pow(p, SPECULAR_EXP);
+
+
+
   return s;
 }
 
 //limit each component of c to a max of 255
 void limit_color( color * c ) {
+  if(c->red > 255) c->red = 255;
+  if(c->green > 255) c->green = 255;
+  if(c->blue > 255) c->blue = 255;
 }
 
 //vector functions
